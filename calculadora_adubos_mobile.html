@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Calculadora de Adubos (Mobile)</title>
+  <style>
+    :root{
+      --bg:#f4f7fa;
+      --card:#ffffff;
+      --accent:#0ea5e9;
+      --muted:#5f6b7a;
+    }
+    *{box-sizing:border-box;font-family:Inter,Segoe UI,system-ui}
+    body{margin:0;background:var(--bg);padding:14px;color:#111}
+
+    .container{max-width:480px;margin:0 auto;}
+    h1{font-size:20px;margin-bottom:6px;color:#0f172a;text-align:center}
+    .subtitle{text-align:center;font-size:13px;color:var(--muted);margin-bottom:16px}
+
+    .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:14px}
+    label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block}
+    input[type="text"],input[type="number"]{
+      width:100%;padding:12px;border-radius:10px;font-size:14px;border:1px solid #d4dce3;background:#fff;margin-bottom:10px
+    }
+
+    .row3{display:flex;gap:8px}
+    .row3 > div{flex:1}
+
+    button{
+      width:100%;padding:12px;border-radius:10px;font-size:15px;font-weight:600;border:0;margin-top:6px
+    }
+    .btn-primary{background:var(--accent);color:white}
+    .btn-ghost{background:#e2e8f0;color:#0f172a}
+
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+    th,td{padding:6px;text-align:left}
+    th{color:var(--muted);font-weight:600;font-size:12px}
+    td input{padding:8px;font-size:13px}
+
+    .actions button{width:auto;padding:6px 10px;font-size:12px;margin:0}
+
+    .result{background:#e0f7ff;padding:14px;border-radius:10px;font-size:14px;margin-top:10px;color:#0c4a6e}
+    .detail{background:#eef2f5;padding:12px;border-radius:10px;font-size:13px;margin-top:10px}
+    .warning{background:#fff0d6;padding:12px;border-radius:10px;color:#5f3d00;margin-top:8px;font-size:13px}
+    .success{background:#d9ffe7;padding:12px;border-radius:10px;color:#064e3b;margin-top:8px;font-size:13px}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Calculadora de Adubos</h1>
+  <div class="subtitle">Compatível com celulares — funciona 100% offline</div>
+
+  <div class="card">
+    <label>Nome da planta</label>
+    <input id="plantName" placeholder="Ex: Tomate">
+
+    <div class="row3">
+      <div>
+        <label>N necessário (kg)</label>
+        <input id="needN" type="number" value="10">
+      </div>
+      <div>
+        <label>P necessário (kg)</label>
+        <input id="needP" type="number" value="25">
+      </div>
+      <div>
+        <label>K necessário (kg)</label>
+        <input id="needK" type="number" value="15">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:14px;font-weight:600">Adubos</div>
+      <button id="addAdubo" class="btn-ghost" style="width:auto">+ adicionar</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>N%</th><th>P%</th><th>K%</th><th></th></tr>
+      </thead>
+      <tbody id="adubosBody"></tbody>
+    </table>
+  </div>
+
+  <button id="calcBtn" class="btn-primary">Calcular</button>
+  <button id="resetBtn" class="btn-ghost">Limpar</button>
+
+  <div id="results" class="result" style="display:none"></div>
+  <div id="warning" class="warning" style="display:none"></div>
+  <div id="success" class="success" style="display:none"></div>
+  <div id="detailBox" class="detail" style="display:none"></div>
+</div>
+
+<script>
+let aduboId=0;
+const body=document.getElementById("adubosBody");
+function addAdubo(name="A",n=20,p=5,k=0){
+  const id="ad"+(aduboId++);
+  const tr=document.createElement("tr");
+  tr.innerHTML=`
+    <td><input class="adName" data-id="${id}" value="${name}"></td>
+    <td><input class="adN" data-id="${id}" type="number" value="${n}"></td>
+    <td><input class="adP" data-id="${id}" type="number" value="${p}"></td>
+    <td><input class="adK" data-id="${id}" type="number" value="${k}"></td>
+    <td class="actions"><button class="btn-ghost remove">x</button></td>
+  `;
+  tr.querySelector(".remove").onclick=()=>tr.remove();
+  body.appendChild(tr);
+}
+
+function reset(){ body.innerHTML=""; aduboId=0; addAdubo("A",20,5,0); addAdubo("B",0,30,0); addAdubo("C",0,0,40); }
+reset();
+
+document.getElementById("addAdubo").onclick=()=>addAdubo("X",0,0,0);
+
+document.getElementById("resetBtn").onclick=()=>{ reset(); document.getElementById("results").style.display="none"; document.getElementById("detailBox").style.display="none"; document.getElementById("warning").style.display="none"; document.getElementById("success").style.display="none"; };
+
+function readAdubos(){
+  return [...body.querySelectorAll("tr")].map(r=>({
+    name:r.querySelector(".adName").value,
+    n:parseFloat(r.querySelector(".adN").value)||0,
+    p:parseFloat(r.querySelector(".adP").value)||0,
+    k:parseFloat(r.querySelector(".adK").value)||0,
+  }));
+}
+// Linear algebra util
+function dot(a,b){return a.reduce((s,v,i)=>s+v*b[i],0)}
+function norm(v){return Math.sqrt(dot(v,v))}
+function qr(A){
+  let m=A[0].length;
+  let cols=[...Array(m)].map((_,j)=>[A[0][j],A[1][j],A[2][j]]);
+  let Q=[], R=[...Array(m)].map(()=>Array(m).fill(0));
+  for(let j=0;j<m;j++){
+    let v=cols[j].slice();
+    for(let i=0;i<j;i++){
+      const rij=dot(Q[i],cols[j]); R[i][j]=rij;
+      v=v.map((v2,k)=>v2-rij*Q[i][k]);
+    }
+    const rjj=norm(v); R[j][j]=rjj;
+    Q.push(rjj>1e-12?v.map(x=>x/rjj):[0,0,0]);
+  }
+  return{Q,R};
+}
+function solveUpper(R,b){let m=b.length,x=Array(m).fill(0);for(let i=m-1;i>=0;i--){let s=b[i];for(let j=i+1;j<m;j++)s-=R[i][j]*x[j];x[i]=Math.abs(R[i][i])>1e-12?s/R[i][i]:0;}return x;}
+
+function leastSquares(A,b){
+  const {Q,R}=qr(A);
+  let m=A[0].length;
+  let qt_b=[...Array(m)].map((_,j)=>Q[j][0]*b[0]+Q[j][1]*b[1]+Q[j][2]*b[2]);
+  return solveUpper(R,qt_b);
+}
+
+document.getElementById("calcBtn").onclick=()=>{
+  const needN=parseFloat(document.getElementById("needN").value)||0;
+  const needP=parseFloat(document.getElementById("needP").value)||0;
+  const needK=parseFloat(document.getElementById("needK").value)||0;
+  const b=[needN,needP,needK];
+  const adubos=readAdubos();
+  const A=[[],[],[]];
+  adubos.forEach(a=>{A[0].push(a.n/100);A[1].push(a.p/100);A[2].push(a.k/100);});
+  const x=leastSquares(A,b);
+
+  let sup=[0,0,0];
+  x.forEach((v,j)=>{sup[0]+=A[0][j]*v;sup[1]+=A[1][j]*v;sup[2]+=A[2][j]*v;});
+  let residual=[b[0]-sup[0],b[1]-sup[1],b[2]-sup[2]];
+  let resNorm=norm(residual);
+
+  let rDiv=document.getElementById("results");
+  rDiv.style.display="block";
+  rDiv.innerHTML="<b>Quantidade por adubo:</b><br>"+adubos.map((a,i)=>`${a.name}: <b>${x[i].toFixed(4)} kg</b>`).join("<br>");
+
+  let d=document.getElementById("detailBox");
+  d.style.display="block";
+  d.innerHTML=`<b>Fornecido vs Necessário:</b><br>N: ${sup[0].toFixed(3)} / ${needN}<br>P: ${sup[1].toFixed(3)} / ${needP}<br>K: ${sup[2].toFixed(3)} / ${needK}<br><br>Resíduo total: ${resNorm.toFixed(4)} kg`;
+
+  document.getElementById("warning").style.display = x.some(v=>v<0)?"block":"none";
+  document.getElementById("warning").textContent = "Atenção: a solução gerou valores negativos — ajuste os adubos.";
+
+  document.getElementById("success").style.display = resNorm<1e-6?"block":"none";
+  document.getElementById("success").textContent = "Requisitos atendidos com precisão.";
+};
+</script>
+
+</body>
+</html>
